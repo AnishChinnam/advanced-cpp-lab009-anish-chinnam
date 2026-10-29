@@ -31,3 +31,6 @@
 *.out
 *.app
 
+
+# Local build artifacts
+/build/

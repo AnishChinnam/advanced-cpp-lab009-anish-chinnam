@@ -147,3 +147,48 @@ TEST_CASE("MaxHeap toVector preserves heap contents for inspection") {
     REQUIRE(std::count(data.begin(), data.end(), 1) == 1);
     REQUIRE(std::count(data.begin(), data.end(), 7) == 1);
 }
+
+#include <algorithm>
+#include <limits>
+#include <queue>
+#include <random>
+TEST_CASE("MaxHeap rebuild and sorting preserve the documented state") {
+    MaxHeap heap({4, 4, -1, std::numeric_limits<int>::min(), std::numeric_limits<int>::max()});
+    auto before = heap.toVector();
+    auto expected = before;
+    std::sort(expected.begin(), expected.end());
+    REQUIRE(heap.heapSort() == expected);
+    REQUIRE(heap.toVector() == before);
+    REQUIRE(heap.heapSort() == expected);
+    heap.buildHeap({});
+    REQUIRE(heap.empty());
+    REQUIRE_THROWS_AS(heap.top(), std::logic_error);
+    heap.push(2);
+    REQUIRE(heap.pop() == 2);
+}
+
+TEST_CASE("MaxHeap mixed operations agree with a standard priority queue") {
+    MaxHeap heap;
+    std::priority_queue<int> expected;
+    std::mt19937 random(9);
+    for (int i = 0; i < 1000; ++i) {
+        if (expected.empty() || random() % 2) {
+            int value = static_cast<int>(random() % 201) - 100;
+            heap.push(value);
+            expected.push(value);
+        } else {
+            REQUIRE(heap.pop() == expected.top());
+            expected.pop();
+        }
+        REQUIRE(heap.size() == expected.size());
+        if (!expected.empty()) REQUIRE(heap.top() == expected.top());
+        auto data = heap.toVector();
+        for (std::size_t j = 1; j < data.size(); ++j)
+            REQUIRE(data[(j - 1) / 2] >= data[j]);
+    }
+    while (!expected.empty()) {
+        REQUIRE(heap.pop() == expected.top());
+        expected.pop();
+    }
+    REQUIRE(heap.empty());
+}
